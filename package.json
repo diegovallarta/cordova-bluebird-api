@@ -1,0 +1,27 @@
+{
+  "name": "cordova-plugin-bluebird",
+  "version": "1.0.1",
+  "description": "Bluebird api",
+  "cordova": {
+    "id": "cordova-plugin-blubird",
+    "platforms": [
+      "android"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/diegovallarta/cordova-bluebird-api.git"
+  },
+  "keywords": [
+    "ecosystem:cordova",
+    "cordova-android"
+  ],
+  "engines": [
+    {
+      "name": "cordova",
+      "version": ">=5.0.0"
+    }
+  ],
+  "author": "Blake Byrnes <blakebyrnes@gmail.com>",
+  "license": "MIT"
+}
