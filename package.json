@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "description": "Bluebird api",
   "cordova": {
-    "id": "cordova-plugin-blubird",
+    "id": "cordova-plugin-bluebird",
     "platforms": [
       "android"
     ]
