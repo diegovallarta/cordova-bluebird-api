@@ -2,7 +2,7 @@
 
 <plugin xmlns="http://cordova.apache.org/ns/plugins/1.0"
            id="cordova-plugin-bluebird"
-      version="0.1.0">
+      version="1.1.0">
     <name>Bluebird</name>
 
 
