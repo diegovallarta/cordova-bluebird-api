@@ -15,30 +15,44 @@ import java.util.Map;
 import java.util.List;
 import java.util.Iterator;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 /**
  * Written by blakebyrnes on 4/7/14 for cordova
  */
 public abstract class BaseIntentHandler {
+
+    private static final ExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadExecutor();
+
     protected abstract String getOpenIntent();
+
     protected abstract String getCloseIntent();
+
     protected abstract String getCallbackDataReceivedIntent();
+
     protected abstract String getCallbackSuccessIntent();
+
     protected abstract String getCallbackFailedIntent();
-    
+
     private static final String EXTRA_SEQUENCE_ID = "EXTRA_INT_DATA3";
+
     protected String getIntentExtraSequenceField() {
         return EXTRA_SEQUENCE_ID;
     }
 
     private static final String EXTRA_ERROR_ID = "EXTRA_INT_DATA2";
+
     protected String getIntentExtraErrorField() {
         return EXTRA_ERROR_ID;
-    }    
+    }
 
     protected abstract int getTimeoutErrorCode();
-    protected abstract String getErrorTranslation(int code);
-    
 
+    protected abstract String getErrorTranslation(int code);
+
+
+    private static final int AVAILABILITY_REQUEST_ID = 13;
     private static final int OPEN_REQUEST_ID = 8;
     private static final int CLOSE_REQUEST_ID = 16;
     private static final int READ_REQUEST_ID = 24;
@@ -47,7 +61,9 @@ public abstract class BaseIntentHandler {
     protected Map<Integer, ScanCallback<Void>> timeoutCallbackMap = Collections.synchronizedMap(new HashMap<Integer, ScanCallback<Void>>());
 
     protected Object stateLock = new Object();
+
     protected boolean hasInitialized = false;
+    protected boolean isAvailable = false;
 
     protected static String TAG;
 
@@ -76,7 +92,7 @@ public abstract class BaseIntentHandler {
         });
     }
 
-    
+
     public void open(ScanCallback<Boolean> openResult) {
         Log.i(TAG, "Open called");
         if (hasInitialized) {
@@ -106,10 +122,54 @@ public abstract class BaseIntentHandler {
         }
     }
 
+    public void isAvailable(ScanCallback<Boolean> requestResult, ScanCallback<Void> onTimeout) {
+        Log.i(TAG, "Check if bluebird is available");
+
+        synchronized (stateLock) {
+            Log.i(TAG, "Checking availability");
+
+            resultCallbackMap.put(AVAILABILITY_REQUEST_ID, requestResult);
+            timeoutCallbackMap.put(AVAILABILITY_REQUEST_ID, onTimeout);
+
+            final Runnable action = new Runnable() {
+                @Override
+                public void run() {
+                    getIntent();
+                }
+            };
+
+            EXECUTOR_SERVICE.submit(action);
+
+            new android.os.Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if(!isAvailable){
+                        Log.i(TAG, "Bluebird is not available");
+                        resultCallbackMap.remove(AVAILABILITY_REQUEST_ID).execute(false);
+                        timeoutCallbackMap.remove(AVAILABILITY_REQUEST_ID);
+                        applicationContext.unregisterReceiver(resultAvailableReceiver);
+                    }
+                }
+            }, 1000);
+        }
+    }
+
+    private Intent getIntent() {
+        IntentFilter requestFilter = new IntentFilter();
+        requestFilter.addAction(getCallbackSuccessIntent());
+        requestFilter.addAction(getCallbackFailedIntent());
+        applicationContext.registerReceiver(resultAvailableReceiver, requestFilter);
+
+        Intent openIntent = new Intent(getOpenIntent());
+        openIntent.putExtra(EXTRA_SEQUENCE_ID, OPEN_REQUEST_ID);
+        applicationContext.sendBroadcast(openIntent);
+        return openIntent;
+    }
+
     /*
-    * Override to add any extra variables to the close intent
-    */
-    protected void processCloseIntent(Intent intent){
+     * Override to add any extra variables to the close intent
+     */
+    protected void processCloseIntent(Intent intent) {
         //no-op.  override to add to intent (such as handles)
     }
 
@@ -133,13 +193,13 @@ public abstract class BaseIntentHandler {
 
             try {
                 applicationContext.unregisterReceiver(dataReceiver);
-            } catch(Exception ex) {
+            } catch (Exception ex) {
                 Log.e(TAG, "Exception while unregistering data receiver. Was open ever called?", ex);
             }
 
             try {
                 applicationContext.unregisterReceiver(resultReceiver);
-            } catch(Exception ex) {
+            } catch (Exception ex) {
                 Log.e(TAG, "Exception while unregistering results receiver. Was open ever called?", ex);
             }
 
@@ -167,18 +227,19 @@ public abstract class BaseIntentHandler {
 
                 //remove any timeout or result callbacks registered for this
                 timeoutCallbackMap.remove(sequenceId);
-            } catch(Exception ex) {
+            } catch (Exception ex) {
                 Log.e(TAG, "Exception raised during callback processing.", ex);
             }
         }
     };
 
     /*
-    * Handle reading any extra data out of the intent to store in the class
-    */
+     * Handle reading any extra data out of the intent to store in the class
+     */
     protected void processIntentSuccessCallback(Intent intent) {
         //clear handles or flags
     }
+
     private BroadcastReceiver resultReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -191,15 +252,15 @@ public abstract class BaseIntentHandler {
             }
             //execute callbacks first
             try {
-                if(getCallbackSuccessIntent().equals(intent.getAction())) {
+                if (getCallbackSuccessIntent().equals(intent.getAction())) {
                     processIntentSuccessCallback(intent);
                     //success
-                    if(resultCallbackMap.containsKey(sequenceId)) {
+                    if (resultCallbackMap.containsKey(sequenceId)) {
                         resultCallbackMap.remove(sequenceId).execute(true);
                     }
-                } else if(errorCode == getTimeoutErrorCode()) {
+                } else if (errorCode == getTimeoutErrorCode()) {
                     //timeout
-                    if(timeoutCallbackMap.containsKey(sequenceId)) {
+                    if (timeoutCallbackMap.containsKey(sequenceId)) {
                         timeoutCallbackMap.remove(sequenceId).execute(null);
                     }
 
@@ -207,11 +268,53 @@ public abstract class BaseIntentHandler {
                     resultCallbackMap.remove(sequenceId);
                 } else {
                     //general failure
-                    if(resultCallbackMap.containsKey(sequenceId)) {
+                    if (resultCallbackMap.containsKey(sequenceId)) {
                         resultCallbackMap.remove(sequenceId).execute(false);
                     }
                 }
-            } catch(Exception ex) {
+            } catch (Exception ex) {
+                //don't let a callback's exception throw off the receiver.
+                Log.e(TAG, "Exception raised during callback processing.", ex);
+            }
+        }
+    };
+
+    private BroadcastReceiver resultAvailableReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+
+            int errorCode = intent.getIntExtra(getIntentExtraErrorField(), -1);
+            if (errorCode > 0) {
+                Log.e(TAG, "ERROR on intent result: " + getErrorTranslation(errorCode));
+            }
+
+            try {
+                if (action.equals(getCallbackSuccessIntent())) {
+                    Log.i(TAG, "Bluebird is available");
+                    int seq = intent.getIntExtra(EXTRA_SEQUENCE_ID, 0);
+                    if (resultCallbackMap.containsKey(AVAILABILITY_REQUEST_ID)) {
+                        resultCallbackMap.remove(AVAILABILITY_REQUEST_ID).execute(true);
+                    }
+
+                    isAvailable = true;
+                } else if (errorCode == getTimeoutErrorCode()) {
+                    Log.i(TAG, "Bluebird check timeout");
+
+                    if (timeoutCallbackMap.containsKey(AVAILABILITY_REQUEST_ID)) {
+                        timeoutCallbackMap.remove(AVAILABILITY_REQUEST_ID).execute(null);
+                    }
+
+                    //shouldn't have any result callbacks still waiting, but clear them anyway
+                    resultCallbackMap.remove(AVAILABILITY_REQUEST_ID);
+                } else if (action.equals(getCallbackFailedIntent())) {
+                    Log.i(TAG, "Bluebird is not available");
+                    int errorId = intent.getIntExtra(EXTRA_ERROR_ID, 0);
+                    if (resultCallbackMap.containsKey(AVAILABILITY_REQUEST_ID)) {
+                        resultCallbackMap.remove(AVAILABILITY_REQUEST_ID).execute(false);
+                    }
+                }
+            } catch (Exception ex) {
                 //don't let a callback's exception throw off the receiver.
                 Log.e(TAG, "Exception raised during callback processing.", ex);
             }

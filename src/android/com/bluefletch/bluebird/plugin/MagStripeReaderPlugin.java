@@ -55,12 +55,12 @@ public class MagStripeReaderPlugin extends CordovaPlugin {
                     pluginResult.setKeepCallback(true);
                     callbackContext.sendPluginResult(pluginResult);
                 }
-            }); 
+            });
             reader.start();
         }
         else if ("unregister".equals(action)) {
             reader.stop();
-        } 
+        }
         else if ("read".equals(action)){
             reader.read(new ScanCallback<Boolean>() {
                 @Override

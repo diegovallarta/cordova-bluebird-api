@@ -25,17 +25,17 @@ import com.bluefletch.bluebird.BarcodeScanner;
 import com.bluefletch.bluebird.ScanCallback;
 
 public class BarcodeScannerPlugin extends CordovaPlugin {
-    
+
     private BarcodeScanner scanner;
     protected static String TAG;
 
     @Override
-    public void initialize(CordovaInterface cordova, CordovaWebView webView)
-    {
+    public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
         TAG = this.getClass().getSimpleName();
         scanner = new BarcodeScanner(cordova.getActivity().getBaseContext());
     }
+
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
         if ("register".equals(action)) {
@@ -47,13 +47,11 @@ public class BarcodeScannerPlugin extends CordovaPlugin {
                     pluginResult.setKeepCallback(true);
                     callbackContext.sendPluginResult(pluginResult);
                 }
-            }); 
+            });
             scanner.start();
-        }
-        else if ("unregister".equals(action)) {
+        } else if ("unregister".equals(action)) {
             scanner.stop();
-        }
-        else if ("softScanOn".equals(action)){
+        } else if ("softScanOn".equals(action)) {
             scanner.softScanOn(new ScanCallback<Boolean>() {
                 @Override
                 public void execute(Boolean result) {
@@ -67,39 +65,53 @@ public class BarcodeScannerPlugin extends CordovaPlugin {
                     callbackContext.error("Error turning on scanner");
                 }
             });
-        }
-        else if ("softScanOff".equals(action)) {
+        } else if ("softScanOff".equals(action)) {
             scanner.softScanOff(new ScanCallback<Boolean>() {
                 @Override
                 public void execute(Boolean result) {
                     Log.i(TAG, "Soft scanner off - result [" + result + "].");
-                    if(result)
+                    if (result)
                         callbackContext.success();
                     else
                         callbackContext.error("Error turning off scanner");
+                }
+            });
+        } else if ("isAvailable".equals(action)) {
+            scanner.isAvailable(new ScanCallback<Boolean>() {
+                @Override
+                public void execute(Boolean result) {
+                    Log.i(TAG, "Bluebird availability - result [" + result + "].");
+                    if (result)
+                        callbackContext.success();
+                    else
+                        callbackContext.error("Not a bluebird device");
+                }
+            }, new ScanCallback<Void>() {
+                @Override
+                public void execute(Void v) {
+                    callbackContext.error("Not a bluebird device");
                 }
             });
         }
 
         return true;
     }
+
     /**
-    * Always close the current intent reader
-    */
+     * Always close the current intent reader
+     */
     @Override
-    public void onPause(boolean multitasking)
-    {
+    public void onPause(boolean multitasking) {
         super.onPause(multitasking);
         scanner.stop();
     }
 
 
     /**
-    * Always resume the current activity
-    */
+     * Always resume the current activity
+     */
     @Override
-    public void onResume(boolean multitasking)
-    {
+    public void onResume(boolean multitasking) {
         super.onResume(multitasking);
         scanner.start();
     }

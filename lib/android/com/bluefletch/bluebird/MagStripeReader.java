@@ -58,11 +58,11 @@ public class MagStripeReader extends BaseIntentHandler {
     private static final int READ_REQUEST_ID = 23;
     private int handle = -1;
     private boolean triggerReadOnOpen = false;
- 
+
     public MagStripeReader(Context appContext){
         super(appContext);
     }
-    
+
     public void read(ScanCallback<Boolean> requestResult) {
         resultCallbackMap.put(READ_REQUEST_ID, requestResult);
 
@@ -83,7 +83,7 @@ public class MagStripeReader extends BaseIntentHandler {
         Intent scanOnIntent = new Intent(ACTION_READ);
         scanOnIntent.putExtra(EXTRA_HANDLE_ID, this.handle);
         scanOnIntent.putExtra(getIntentExtraSequenceField(), READ_REQUEST_ID);
-        
+
         applicationContext.sendBroadcast(scanOnIntent);
     }
 
@@ -93,8 +93,8 @@ public class MagStripeReader extends BaseIntentHandler {
         this.handle = -1;
         this.triggerReadOnOpen = false;
     }
-    
-    @Override  
+
+    @Override
     protected void onDataRead(Intent intent){
         List<String> tracks = new ArrayList<String>();
         if(intent.hasExtra(EXTRA_TRACK_1)) {
@@ -116,7 +116,7 @@ public class MagStripeReader extends BaseIntentHandler {
             Log.e(TAG, "Read callback not provided to magstripe reader class");
         }
     }
-  
+
     @Override
     protected void processIntentSuccessCallback(Intent intent) {
         //read handle from intent
@@ -132,9 +132,9 @@ public class MagStripeReader extends BaseIntentHandler {
         switch(code) {
             case -1:
                 return "NA";
-            case 2: 
+            case 2:
                 return "Timeout";
-            case 3: 
+            case 3:
                 return "Bad Data";
             case 4:
                 return "Not Supported";

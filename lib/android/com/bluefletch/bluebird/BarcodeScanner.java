@@ -44,12 +44,12 @@ public class BarcodeScanner extends BaseIntentHandler {
     private static final String ACTION_BARCODE_SET_TRIGGER = "kr.co.bluebird.android.bbapi.action.BARCODE_SET_TRIGGER";
     private static final String EXTRA_BARCODE_DATA_BYTE_ARRAY = "EXTRA_BARCODE_DECODING_DATA";
     private static final String EXTRA_TRIGGER_TOGGLE = "EXTRA_INT_DATA2";
-    
+
 
     public BarcodeScanner(Context appContext){
         super(appContext);
     }
-    
+
     public void softScanOn(ScanCallback<Boolean> requestResult, ScanCallback<Void> onTimeout) {
         final int softScanOnId = 24;
         resultCallbackMap.put(softScanOnId, requestResult);
@@ -91,7 +91,7 @@ public class BarcodeScanner extends BaseIntentHandler {
         switch(code) {
             case -1:
                 return "NA";
-            case -6: 
+            case -6:
                 return "Timeout";
         }
         return "";
