@@ -85,12 +85,12 @@ BarcodeScanner.prototype.isAvailable = function (successCallback, errorCallback)
     };
 
     if (typeof errorCallback !== "function") {
-        console.log("BarcodeScanner.register failure: failure callback is not a function");
+        console.log("BarcodeScanner.isAvailable failure: failure callback is not a function");
         return;
     }
 
     if (typeof successCallback !== "function") {
-        console.log("BarcodeScanner.register failure: success callback parameter must be a function");
+        console.log("BarcodeScanner.isAvailable failure: success callback parameter must be a function");
         return;
     }
 
