@@ -126,17 +126,19 @@ public abstract class BaseIntentHandler {
         Log.i(TAG, "Check if bluebird is available");
 
         synchronized (stateLock) {
-            Log.i(TAG, "Checking availability");
 
             resultCallbackMap.put(AVAILABILITY_REQUEST_ID, requestResult);
             timeoutCallbackMap.put(AVAILABILITY_REQUEST_ID, onTimeout);
 
+
             final Runnable action = new Runnable() {
                 @Override
                 public void run() {
+                    Log.i(TAG, "Checking availability");
                     getIntent();
                 }
             };
+
 
             EXECUTOR_SERVICE.submit(action);
 
@@ -145,7 +147,11 @@ public abstract class BaseIntentHandler {
                 public void run() {
                     if(!isAvailable){
                         Log.i(TAG, "Bluebird is not available");
-                        resultCallbackMap.remove(AVAILABILITY_REQUEST_ID).execute(false);
+
+                        if (resultCallbackMap.containsKey(AVAILABILITY_REQUEST_ID)) {
+                            resultCallbackMap.remove(AVAILABILITY_REQUEST_ID).execute(false);
+                        }
+
                         timeoutCallbackMap.remove(AVAILABILITY_REQUEST_ID);
                         applicationContext.unregisterReceiver(resultAvailableReceiver);
                     }
